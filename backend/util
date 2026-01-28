@@ -1,0 +1,315 @@
+Admin info
+
+Username: BlaeUserAdmin
+Email address: Blaemedia26@gmail.com
+password: 6116
+
+
+
+https://dbdiagram.io/d
+
+celery -A BlaeMart worker --loglevel=info --pool=solo
+
+
+from django.core.management.base import BaseCommand
+from backend.store.models import (
+    Category, Collection, Promotion, Product, ProductImage,
+    CustomerProfile, Order, OrderItem, Cart, CartItem, ProductReview
+)
+from backend.core.models import User
+from django.contrib.auth import get_user_model
+
+from faker import Faker
+import random
+from decimal import Decimal
+from django.utils.text import slugify
+from django.utils import timezone
+import faker.providers
+
+User = get_user_model()
+
+# ---- Nigeria-focused categories ----
+CATEGORIES = [
+    "Men's Fashion",
+    "Women's Fashion",
+    "Electronics",
+    "Home & Living",
+    "Beauty Products",
+    "Groceries",
+    "Sports & Fitness",
+    "Kids & Baby",
+    "Accessories",
+    "Footwear"
+]
+
+# ---- Nigeria-focused product list ----
+PRODUCTS = [
+    "Ankara Shoes", "Leather Boots", "Trainers", "Agbada Outfit", 
+    "Buba & Iro", "T-Shirt", "Jeans", "Shirts", "Printed Shirts", 
+    "Tank Tops", "Polo Shirt", "Skincare", "Makeup", "Hair Care", 
+    "DIY Tools", "Garden & Outdoors", "Lighting", "Home Decor", 
+    "Kitchen Appliances", "Grocery", "Beverages", "Snacks", 
+    "Organic Foods", "Electronics", "Mobile Accessories", "Laptops", 
+    "Gaming Accessories",
+]
+
+# ---- Nigeria-focused promotions ----
+PROMOTIONS = [
+    "New Arrivals", "Best Sellers", "Trending Now", "Flash Sale", 
+    "Limited Offer", "Clearance Sale", "Buy One Get One", "Weekend Deals", 
+    "Holiday Sale", "Mega Discount", "Under ₦5,000", "Under ₦10,000", 
+    "Budget Deals", "Luxury Picks", "Recommended For You", "Top Rated", 
+    "Most Viewed", "Staff Picks", "Back to School", "Black Friday", 
+    "Cyber Monday", "Christmas Deals", "Easter Sale",
+]
+
+COLLECTIONS = [
+    "Men's Fashion", "Women's Fashion", "Electronics", "Home & Living", 
+    "Beauty Products", "Groceries", "Sports & Fitness", "Kids & Baby", 
+    "Accessories", "Footwear", "New Arrivals", "Best Sellers", 
+    "Trending Now", "Flash Sales",
+]
+
+nigerian_cities = [
+    "Abuja", "Lagos", "Kano", "Ibadan", "Port Harcourt", "Benin City", 
+    "Kaduna", "Maiduguri", "Zaria", "Aba", "Jos", "Ilorin", "Oshogbo", 
+    "Enugu", "Ede", "Onitsha", "Warri", "Owerri", "Akure", "Calabar", 
+    "Sokoto", "Bauchi", "Yola", "Makurdi", "Ado-Ekiti", "Uyo", "Gombe", 
+    "Lafia", "Katsina", "Ikare", "Iwo", "Ikeja", "Shagamu", "Oyo", 
+    "Ijebu-Ode", "Asaba", "Ogbomosho", "Minna", "Lokoja", "Portharcourt", 
+    "Abakaliki", "Gusau", "Damaturu", "Keffi", "Kano", "Kano City", 
+    "Kontagora", "Nguru", "Bida", "Bida Town", "Lere", "Mubi", "Otukpo", 
+    "Yenagoa", "Umuahia", "Awka", "Ikot Ekpene", "Jalingo", "Biu", "Zungeru"
+]
+
+# Lists of common Nigerian first and last names
+nigerian_first_names = [
+    "Chinedu", "Olufemi", "Adebayo", "Amaka", "Ngozi", "Ifeanyi", 
+    "Tunde", "Abiola", "Fatima", "Uche", "Sade", "Chukwuemeka",
+    "Ijeoma", "Kemi", "Bola", "Yemi", "Chuka", "Aisha"
+]
+
+nigerian_last_names = [
+    "Okonkwo", "Adebayo", "Ogunleye", "Ibrahim", "Eze", "Balogun", 
+    "Adeyemi", "Nwosu", "Chukwudi", "Obi", "Okafor", "Ajayi", 
+    "Mohammed", "Onyeka", "Olatunji", "Idowu", "Abdullahi", "Akinwale"
+]
+
+product_descriptions = [
+    "Classic Ankara print shirt perfect for casual and formal wear.",
+    "Leather sandals handcrafted for comfort and durability.",
+    "High-quality Bluetooth headphones with noise cancellation.",
+    "Organic Shea butter, perfect for skin and hair care.",
+    "Men's slim-fit denim jeans, durable and stylish.",
+]
+
+def nigerian_username():
+    first = random.choice(nigerian_first_names)
+    last = random.choice(nigerian_last_names)
+    number = random.randint(1, 99)
+    return f"{first.lower()}{last.lower()}{number}"
+
+# ---- Custom Faker Provider ----
+class Provider(faker.providers.BaseProvider):
+    def ecommerce_category(self):
+        return self.random_element(CATEGORIES)
+
+    def ecommerce_products(self):
+        return self.random_element(PRODUCTS)
+
+    def ecommerce_promotions(self):
+        return self.random_element(PROMOTIONS)
+
+    def ecommerce_collections(self):
+        return self.random_element(COLLECTIONS)
+    
+    def nigerian_cities(self):
+        return self.random_element(nigerian_cities)
+
+class Command(BaseCommand):
+    help = "Generate Nigeria-focused fake data for store models"
+
+    def handle(self, *args, **kwargs):
+        fake = Faker("en_US")
+        fake.add_provider(Provider)
+    
+        # ---- Categories ----
+        categories = []
+        for _ in range(10):
+            name = fake.unique.ecommerce_category()
+            category = Category.objects.create(
+                name=name,
+                slug=slugify(name),
+                description=random.choice(product_descriptions),
+                is_active=True
+            )
+            categories.append(category)
+
+        # ---- Collections ----
+        collections = []
+        for _ in range(10):
+            title = fake.unique.ecommerce_collections()
+            collection = Collection.objects.create(
+                title=title,
+                slug=slugify(title),
+                description=random.choice(product_descriptions),
+                is_active=True
+            )
+            collections.append(collection)
+
+        # ---- Promotions ----
+        promotions = []
+        for _ in range(5):
+            name = fake.unique.ecommerce_promotions()
+            start = timezone.now()
+            end = start + timezone.timedelta(days=random.randint(5, 30))
+            promotion = Promotion.objects.create(
+                name=name,
+                discount_percent=random.randint(5, 50),
+                start_date=start,
+                end_date=end,
+                is_active=True
+            )
+            promotions.append(promotion)
+
+        # ---- Users & Customer Profiles ----
+        users = []
+        for i in range(50):
+            username = nigerian_username()
+            email = f"user{i}@{fake.domain_name()}"  # Make email unique
+            
+            shipping_address = f"{fake.street_address()}, {random.choice(nigerian_cities)}, Nigeria"
+            billing_address = f"{fake.street_address()}, {random.choice(nigerian_cities)}, Nigeria"
+            
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password='password123'
+            )
+            CustomerProfile.objects.create(
+                user=user,
+                phone_number=f"+234{fake.random_number(digits=10, fix_len=True)}",
+                shipping_address=shipping_address,
+                billing_address=billing_address,
+                points=random.randint(0, 1000),
+                membership_level=random.choice(['bronze','silver','gold','platinum'])
+            )
+            users.append(user)
+
+        # ---- Products ----
+        products = []
+        for i in range(200):  # This should create 200 products
+            base_name = fake.ecommerce_products()
+            name = f"{base_name} {i+1}"  # Add index to ensure uniqueness
+            
+            category = random.choice(categories)
+            promotion = random.choice(promotions + [None])
+
+            # Category-based price logic
+            if category.name == "Electronics":
+                price = Decimal(str(random.randint(50000, 1500000) / 100))
+            elif category.name in ["Men's Fashion", "Women's Fashion", "Footwear"]:
+                price = Decimal(str(random.randint(2000, 100000) / 100))
+            elif category.name == "Groceries":
+                price = Decimal(str(random.randint(500, 20000) / 100))
+            else:
+                price = Decimal(str(random.randint(1000, 150000) / 100))
+
+            product = Product.objects.create(
+                name=name,
+                slug=slugify(name),
+                description=random.choice(product_descriptions),
+                price=price,
+                inventory=random.randint(0, 100),
+                sku=f"SKU{i:06d}",  # Use index for unique SKU
+                category=category,
+                promotion=promotion
+            )
+
+            # ---- Assign collections ----
+            if collections:
+                product.collections.set(random.sample(collections, k=random.randint(0, min(3, len(collections)))))
+            products.append(product)
+
+            # ---- Product Images ----
+            for j in range(random.randint(1, 3)):
+                category_slug = slugify(category.name)               
+                random_num = random.randint(1, 1000)                 
+                image_url = f"https://loremflickr.com/640/480/{category_slug}?random={random_num}"
+
+                ProductImage.objects.create(
+                    product=product,
+                    image=image_url,
+                    alt_text=fake.sentence(),
+                    is_primary=(j == 0)
+                )
+
+        # ---- Product Reviews ----
+        for _ in range(50):
+            user = random.choice(users)
+            product = random.choice(products)
+            ProductReview.objects.create(
+                product=product,
+                user=user,
+                rating=random.randint(1, 5),
+                title=fake.sentence(nb_words=6),
+                body=fake.text(max_nb_chars=150),
+                is_approved=True
+            )
+        
+        # ---- Orders & OrderItems ----
+        for _ in range(30):
+            user = random.choice(users)
+            shipping_address = f"{fake.street_address()}, {random.choice(nigerian_cities)}, Nigeria"
+            
+            order = Order.objects.create(
+                customer=user,
+                status=random.choice(['pending','processing','shipped','delivered']),
+                total_amount=0,
+                shipping_address=shipping_address,
+                payment_status=random.choice([True, False])
+            )
+            
+            total = Decimal('0')
+            for _ in range(random.randint(1, 5)):
+                product = random.choice(products)
+                qty = random.randint(1, 3)
+                item = OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=qty,
+                    price=product.price
+                )
+                total += item.quantity * item.price
+            
+            order.total_amount = total
+            order.save()
+
+        # ---- Carts & CartItems ----
+        # REMOVED THE DUPLICATE USER CREATION - USE EXISTING USERS
+        num_users_to_sample = min(30, len(users))
+        cart_users = random.sample(users, num_users_to_sample)
+        
+        for cart_user in cart_users:
+            cart = Cart.objects.create(user=cart_user)
+            for _ in range(random.randint(1, 5)):
+                product_choice = random.choice(products)
+                # Check if this user already has this product in their cart
+                if not CartItem.objects.filter(user=cart_user, product=product_choice).exists():
+                    CartItem.objects.create(
+                        user=cart_user,
+                        product=product_choice,
+                        quantity=random.randint(1, 5)
+                    )
+
+        self.stdout.write(self.style.SUCCESS(
+            f"""
+            Successfully created Nigeria-focused fake data!
+            Summary:
+            - Categories: {len(categories)}
+            - Collections: {len(collections)}
+            - Promotions: {len(promotions)}
+            - Users: {len(users)}
+            - Products: {len(products)}
+            """
+        ))

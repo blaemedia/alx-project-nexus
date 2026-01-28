@@ -1,0 +1,12 @@
+# Ignore all files created by virtual environments
+*.venv/
+.env
+__pycache__/
+*.pyc
+
+# Ignore specific project folders
+blaemart_frontend/
+store/
+frontend/
+core/
+BlaeMart/

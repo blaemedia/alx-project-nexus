@@ -1,0 +1,146 @@
+Table User {
+  id int [pk]
+  username varchar
+  email varchar
+  password varchar
+}
+
+Table Category {
+  id int [pk]
+  name varchar(255)
+  slug varchar(255) [unique]
+  description text
+  is_active boolean
+  created_at timestamp
+}
+
+Table Collection {
+  id int [pk]
+  title varchar(255)
+  slug varchar(255) [unique]
+  description text
+  is_active boolean
+  created_at timestamp
+}
+
+Table Promotion {
+  id int [pk]
+  name varchar(255)
+  discount_percent int
+  start_date timestamp
+  end_date timestamp
+  is_active boolean
+}
+
+Table Product {
+  id int [pk]
+  name varchar(255)
+  slug varchar(255) [unique]
+  description text
+  price decimal(6,2)
+  last_update timestamp
+  inventory int
+  sku varchar(100) [unique]
+  category_id int
+  promotion_id int
+}
+
+Table Product_Collections {
+  product_id int
+  collection_id int
+}
+
+Table ProductImage {
+  id int [pk]
+  product_id int
+  image varchar
+  alt_text varchar(255)
+  is_primary boolean
+  created_at timestamp
+}
+
+Table UserProfile {
+  id int [pk]
+  user_id int
+  is_customer boolean
+  is_vendor boolean
+  is_delivery boolean
+}
+
+Table ProductReview {
+  id int [pk]
+  product_id int
+  user_id int
+  rating smallint
+  title varchar(255)
+  body text
+  is_approved boolean
+  created_at timestamp
+}
+
+Table CustomerProfile {
+  id int [pk]
+  user_id int
+  phone_number varchar(20)
+  email varchar
+  shipping_address text
+  billing_address text
+  points int
+  membership_level varchar(10)
+  wants_newsletter boolean
+  profile_image varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table Order {
+  id int [pk]
+  customer_id int
+  created_at timestamp
+  updated_at timestamp
+  status varchar(20)
+  total_amount decimal(10,2)
+  shipping_address text
+  payment_status boolean
+}
+
+Table OrderItem {
+  id int [pk]
+  order_id int
+  product_id int
+  quantity int
+  price decimal(10,2)
+}
+
+Table Cart {
+  id int [pk]
+  user_id int
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table CartItem {
+  id int [pk]
+  cart_id int
+  product_id int
+  quantity int
+  added_at timestamp
+}
+
+# Relationships
+
+Ref: Product.category_id > Category.id
+Ref: Product.promotion_id > Promotion.id
+Ref: Product_Collections.product_id > Product.id
+Ref: Product_Collections.collection_id > Collection.id
+Ref: ProductImage.product_id > Product.id
+Ref: UserProfile.user_id > User.id
+Ref: ProductReview.product_id > Product.id
+Ref: ProductReview.user_id > User.id
+Ref: CustomerProfile.user_id > User.id
+Ref: Order.customer_id > User.id
+Ref: OrderItem.order_id > Order.id
+Ref: OrderItem.product_id > Product.id
+Ref: Cart.user_id > User.id
+Ref: CartItem.cart_id > Cart.id
+Ref: CartItem.product_id > Product.id
