@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Lato} from "next/font/google";
 import "./globals.css";
 
+
+
 const latofont = Lato({
   weight: ['100', '300', '400', '700', '900'], // Specify weights you need
   subsets: ['latin'],
@@ -22,10 +24,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="bg-white max-w-7xl mx-auto">
       <body
-        className={`${latofont.variable}antialiased`}
+        className={`${latofont.variable} antialiased`}
       >
+        
+      
+      
+       
         {children}
       </body>
     </html>
