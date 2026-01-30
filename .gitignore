@@ -1,12 +1,36 @@
-# Ignore all files created by virtual environments
+# =========================
+# Python / Django
+# =========================
 *.venv/
 .env
 __pycache__/
 *.pyc
 
-# Ignore specific project folders
+# Django media & database
+backend/media/
+db.sqlite3
+
+# =========================
+# Frontend (ignored in dev branch)
+# =========================
 blaemart_frontend/
-store/
 frontend/
+store/
 core/
 BlaeMart/
+
+# Node modules
+node_modules/
+blaemart_frontend/node_modules/
+
+# Next.js build
+.next/
+dist/
+
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
