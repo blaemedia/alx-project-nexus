@@ -1,6 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 
+
  interface CategoryCardProps {
   image?: string; // optional with default
   title?: string; // optional with default
