@@ -158,8 +158,8 @@ export default function CategoryCardFetch() {
 
   return (
     <div className="p-4">
-      <div className="mb-4 flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Store Categories</h2>
+      <div className="mb-4 flex justify-between items-center border-b-2">
+        <h2 className="text-2xl font-bold text-gray-500 p-8">Store Categories</h2>
         <span className="text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
           {categories.length} {categories.length === 1 ? 'category' : 'categories'}
         </span>

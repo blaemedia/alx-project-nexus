@@ -17,8 +17,9 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex w-full max-w-xl mx-auto bg-white border border-gray-300 rounded-full shadow-sm overflow-hidden"
+      className="flex w-110 max-w-full bg-white border border-gray-300 rounded-full shadow-sm overflow-hidden"
     >
+      {/* Input grows/shrinks automatically */}
       <input
         type="text"
         placeholder="Search products, categories..."
@@ -27,7 +28,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         className="flex-1 px-4 py-2 text-gray-700 placeholder-gray-400 focus:outline-none"
       />
 
-      {/* Transparent search icon */}
+      {/* Search button */}
       <button
         type="submit"
         className="px-4 flex items-center justify-center hover:bg-gray-100 transition-colors"

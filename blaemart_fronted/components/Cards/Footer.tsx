@@ -61,6 +61,33 @@ const Footer: React.FC<FooterProps> = ({
 
   return (
     <footer className="bg-gray-900 text-white">
+
+
+        {/* Newsletter Section */}
+        {showNewsletter && (
+          <div className="mt-12 pt-8 border-t border-gray-200">
+            <div className="max-w-md mx-auto text-center">
+              <h3 className="text-xl font-semibold mb-4">Stay in the loop</h3>
+              <p className="text-gray-400 mb-6">
+                Subscribe to receive product updates and special offers.
+              </p>
+              <form className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="grow px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-white"
+                />
+                <button
+                  type="submit"
+                  className="bg-[#FF383C] hover:bg-gray-400 px-6 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Subscribe
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand Column */}
@@ -103,31 +130,7 @@ const Footer: React.FC<FooterProps> = ({
           ))}
         </div>
 
-        {/* Newsletter Section */}
-        {showNewsletter && (
-          <div className="mt-12 pt-8 border-t border-gray-800">
-            <div className="max-w-md mx-auto text-center">
-              <h3 className="text-xl font-semibold mb-4">Stay in the loop</h3>
-              <p className="text-gray-400 mb-6">
-                Subscribe to receive product updates and special offers.
-              </p>
-              <form className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="grow px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500 text-white"
-                />
-                <button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold transition-colors"
-                >
-                  Subscribe
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
+      
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-center">
