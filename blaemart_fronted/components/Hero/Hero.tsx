@@ -7,7 +7,7 @@ export default function Hero() {
     <>
             <div className='position: relative h-160 width-500 bg-[#FF383C] rounded-b-4xl'>
             <h1 className='text-center font-extrabold text-7xl p-8 text-[#D0FF00]'>Buy Better.  Spend Less.</h1>
-            <div className='flex justify-center text-2xl'>
+            <div className='flex justify-center text-2xl font-medium text-white'>
               <p>✅ Secure Payments</p>
               <p>🚚 Fast Delivery</p>
               <p>🔄 Easy Returns</p>
