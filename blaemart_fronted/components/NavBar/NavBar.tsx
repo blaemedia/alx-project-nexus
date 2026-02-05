@@ -38,7 +38,7 @@ export default function NavBar() {
                 <button className='bg-gray-300 px-4 py-1 rounded-xl border-2 border-gray-200 hover:bg-[#FF383C] text-gray-50'>Sign In</button>
                 </Link>
 
-                <Link href="">
+                <Link href="/SignUp">
                   <p className='text-sm underline text-[#FF383C] p-2'>Click for Signing Up</p>
                 </Link>
             </div>
