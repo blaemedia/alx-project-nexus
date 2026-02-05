@@ -5,7 +5,7 @@ import Image from 'next/image'
 export default function Hero() {
   return (
     <>
-            <div className='position: relative h-160 width-500 bg-[#FF383C] rounded-b-4xl'>
+            <div className='position: relative h-160 width-500 bg-[#FF383C] rounded-b-2xl'>
             <h1 className='text-center font-extrabold text-7xl p-8 text-[#D0FF00]'>Buy Better.  Spend Less.</h1>
             <div className='flex justify-center text-2xl font-medium text-white'>
               <p>✅ Secure Payments</p>

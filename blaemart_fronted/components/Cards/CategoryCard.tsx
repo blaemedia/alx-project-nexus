@@ -1,18 +1,11 @@
 'use client';
 
-<<<<<<< HEAD
-
- interface CategoryCardProps {
-  image?: string; // optional with default
-  title?: string; // optional with default
-=======
 import Image from 'next/image';
 import { useState } from 'react';
 
 interface CategoryCardProps {
   image?: string;
   title?: string;
->>>>>>> origin/frontenddev
 }
 
 export default function CategoryCard({
