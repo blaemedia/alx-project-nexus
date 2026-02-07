@@ -1,0 +1,5 @@
+Username: BlaeUserAdmin,
+Email address: Blaemedia26@gmail.com,
+password: 6116,
+
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/auth/jwt/create/" -Method Post -ContentType "application/json" -Body '{"email":"Laembat@gmail.com", "password":"@Ecommerce26"}'
