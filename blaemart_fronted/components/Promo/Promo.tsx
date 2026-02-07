@@ -73,10 +73,10 @@ export default function Promo() {
     <>
 
     <div className="flex flex-row h-160 w-full ">
-        <div className="bg-amber-300 h-full w-160">
+        <div className="bg-[#FF8D28] h-full w-160">
             {data.map(item => ( <div key={item.id}>{item.name}</div> ))}
         </div>
-        <div className="bg-amber-300 h-full w-160">
+        <div className="bg-[amber-300] h-full w-160">
             <Image src='/images/pngwing-4.png'
             alt=""
             width = "5000"

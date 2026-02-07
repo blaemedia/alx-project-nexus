@@ -34,7 +34,7 @@ export default function NavBar() {
             </Link >
             
             <div>
-                <Link href="">
+                <Link href="/SignIn">
                 <button className='bg-gray-300 px-4 py-1 rounded-xl border-2 border-gray-200 hover:bg-[#FF383C] text-gray-50'>Sign In</button>
                 </Link>
 

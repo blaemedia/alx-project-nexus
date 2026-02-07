@@ -18,7 +18,7 @@ const NewArrivals: React.FC = () => {
         </div> */}
 
         {/* Flex Item 2 */}
-        <div className="bg-[#FFCC00] p-6 rounded-lg shadow">
+        <div className="bg-[#FF8D28] p-6 rounded-lg shadow">
           <h2 className="text-7xl font-bold">Super Turbo Washing Machine</h2>
           <p className="text-gray-600">
             Discover the newest gadgets and devices at unbeatable prices.

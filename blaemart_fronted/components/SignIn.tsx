@@ -1,37 +1,36 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface FormData {
   email: string;
   password: string;
-  re_password: string;
 }
 
 interface FormErrors {
   [key: string]: string | string[];
 }
 
-const SignupForm: React.FC = () => {
+const SignInForm: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
-    re_password: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const router = useRouter(); // Next.js router for SPA navigation
 
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
     if (errors[name]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
@@ -51,31 +50,22 @@ const SignupForm: React.FC = () => {
 
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    }
-
-    if (!formData.re_password) {
-      newErrors.re_password = "Please confirm your password";
-    } else if (formData.password !== formData.re_password) {
-      newErrors.re_password = "Passwords do not match";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
+  // Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSuccessMessage("");
 
     if (!validateForm()) return;
 
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/auth/users/", {
+      const response = await fetch("http://127.0.0.1:8000/auth/jwt/create/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,22 +73,27 @@ const SignupForm: React.FC = () => {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          re_password: formData.re_password,
         }),
       });
 
-      const text = await response.text();
-      const data = text ? JSON.parse(text) : {};
+      const data = await response.json();
 
       if (!response.ok) {
-        setErrors(data);
+        // Handle invalid credentials
+        if (data.detail) {
+          setErrors({ general: "Email or password is incorrect" });
+        } else {
+          setErrors(data);
+        }
       } else {
-        setSuccessMessage("Account created successfully! You can now log in.");
-        setFormData({ email: "", password: "", re_password: "" });
+        // Login successful
+        localStorage.setItem("access", data.access);
+        localStorage.setItem("refresh", data.refresh);
+        router.push("/CustomerAcct"); // redirect to customer dashboard
       }
     } catch (err) {
       console.error("Network error:", err);
-      setErrors({ general: "Network error. Please check your connection." });
+      setErrors({ general: "Network error. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +103,7 @@ const SignupForm: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Create your account
+          Sign in to your account
         </h2>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -126,7 +121,9 @@ const SignupForm: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               placeholder="Enter your email"
             />
-            {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
+            {errors.email && (
+              <p className="text-sm text-red-600">{errors.email}</p>
+            )}
           </div>
 
           {/* Password */}
@@ -152,34 +149,16 @@ const SignupForm: React.FC = () => {
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
-            {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
-          </div>
-
-          {/* Confirm Password */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password
-            </label>
-            <input
-              name="re_password"
-              type={showPassword ? "text" : "password"}
-              required
-              value={formData.re_password}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="Confirm password"
-            />
-            {errors.re_password && <p className="text-sm text-red-600">{errors.re_password}</p>}
+            {errors.password && (
+              <p className="text-sm text-red-600">{errors.password}</p>
+            )}
           </div>
 
           {/* General Errors */}
           {errors.general && (
-            <p className="text-sm text-red-600 text-center">{errors.general}</p>
-          )}
-
-          {/* Success Message */}
-          {successMessage && (
-            <p className="text-sm text-green-600 text-center">{successMessage}</p>
+            <p className="text-sm text-red-600 text-center">
+              {errors.general}
+            </p>
           )}
 
           {/* Submit Button */}
@@ -187,18 +166,30 @@ const SignupForm: React.FC = () => {
             type="submit"
             disabled={isLoading}
             className={`w-full py-2 text-white rounded-md ${
-              isLoading ? "bg-[] cursor-not-allowed" : "bg-[#FF8D28] hover:bg-[#FF4400]"
+              isLoading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#FF8D28] hover:bg-[#FF4400]"
             }`}
           >
-            {isLoading ? "Creating account..." : "Sign up"}
+            {isLoading ? "Signing in..." : "Sign in"}
           </button>
 
-          <div className="text-sm text-center mt-2">
-          
-             <p className="font-medium text-gray-500 hover:text-indigo-500">   Already have an account? </p> <Link href="/SignIn">
-                  Sign in
-              </Link> 
-            
+          {/* Links */}
+          <div className="text-sm text-center mt-2 space-y-2">
+            <a
+              href="/signup"
+              className="block font-medium text-gray-500 hover:text-indigo-500"
+            >
+              Don’t have an account? Sign up
+            </a>
+
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="block font-medium text-gray-500 hover:text-indigo-500"
+            >
+              ← Back to Home
+            </button>
           </div>
         </form>
       </div>
@@ -206,4 +197,4 @@ const SignupForm: React.FC = () => {
   );
 };
 
-export default SignupForm;
+export default SignInForm;
