@@ -100,7 +100,7 @@ const SignupForm: React.FC = () => {
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg grid grid-cols-1 md:grid-cols-2 overflow-hidden">
 
         {/* IMAGE SECTION (same as SignIn) */}
-        <div className="relative hidden md:block min-h-[500px]">
+        <div className="relative hidden md:block min-h-125">
           <Image
             src="/images/BlaeStoreImage.jpg"
             alt="Fashion"

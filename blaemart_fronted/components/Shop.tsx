@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import ProductCard from "@/components/Cards/ProductCard";
+import ProductCard from "../components/Cards/ProductCard";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -17,7 +17,6 @@ interface CartItem {
   id: number;
   product: number;
   quantity: number;
-  added_at: string;
 }
 
 const ITEMS_PER_PAGE = 12;
@@ -30,45 +29,83 @@ export default function Shop() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [page, setPage] = useState(1);
 
-  // Fetch products - wrapped with useCallback so effect deps are stable
-  const fetchProducts = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/store/products/`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: Product[] = await res.json();
+  // Fetch products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/store/products/`);
+        const data: Product[] = await res.json();
 
-      const filtered = searchQuery
-        ? data.filter((p) => p.name.toLowerCase().includes(searchQuery))
-        : data;
+        const filtered = searchQuery
+          ? data.filter((p) => p.name.toLowerCase().includes(searchQuery))
+          : data;
 
-      setProducts(filtered);
-      setPage(1);
-    } catch (err) {
-      console.error("Failed to fetch products:", err);
-    }
+        setProducts(filtered);
+        setPage(1);
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      }
+    };
+
+    fetchProducts();
   }, [searchQuery]);
 
-  // Fetch cart items
-  const fetchCartItems = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/store/cart-items/`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: CartItem[] = await res.json();
-      setCartItems(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Failed to fetch cart items:", err);
-      setCartItems([]);
-    }
+  // Fetch cart items with Bearer token
+  useEffect(() => {
+    const fetchCart = async () => {
+      const token = localStorage.getItem("access");
+      
+      if (!token) {
+        // User not logged in
+        setCartItems([]);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/store/cart-items/`, {
+          headers: {
+            "Authorization": `Bearer ${token}`, // ✅ Modern standard
+          },
+        });
+        
+        if (res.status === 401) {
+          // Token expired
+          localStorage.removeItem("access");
+          localStorage.removeItem("refresh");
+          setCartItems([]);
+          return;
+        }
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        
+        const data = await res.json();
+        
+        // Handle response
+        if (Array.isArray(data)) {
+          setCartItems(data);
+        } else {
+          setCartItems([]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch cart items:", err);
+        setCartItems([]);
+      }
+    };
+
+    fetchCart();
   }, []);
 
-  useEffect(() => {
-    // Call async functions safely inside effect
-    fetchProducts();
-    fetchCartItems();
-  }, [fetchProducts, fetchCartItems]);
-
-  // Add to cart handler
+  // Add product to cart with Bearer token
   const addToCart = async (product: Product) => {
+    const token = localStorage.getItem("access");
+    
+    if (!token) {
+      alert("Please login to add items to cart");
+      return;
+    }
+
     try {
       const existing = cartItems.find((item) => item.product === product.id);
 
@@ -77,33 +114,39 @@ export default function Shop() {
         quantity: existing ? existing.quantity + 1 : 1,
       };
 
-      const url = existing
-        ? `${API_BASE_URL}/store/cart-items/${existing.id}/`
-        : `${API_BASE_URL}/store/cart-items/`;
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`, // ✅ Modern standard
+      };
 
-      const method = existing ? "PATCH" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        console.error("Cart API error:", errData);
-        alert("Failed to add item to cart.");
-        return;
+      if (existing) {
+        await fetch(`${API_BASE_URL}/store/cart-items/${existing.id}/`, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await fetch(`${API_BASE_URL}/store/cart-items/`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        });
       }
 
-      // Refresh cart items
-      fetchCartItems();
+      // Refresh cart
+      const res = await fetch(`${API_BASE_URL}/store/cart-items/`, {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setCartItems(Array.isArray(data) ? data : []);
+      }
+
       alert(`${product.name} added to cart`);
     } catch (err) {
-      console.error("Add to cart error:", err);
-      alert("Something went wrong while adding to cart.");
+      console.error("Add to cart failed:", err);
+      alert("Failed to add to cart. Try again.");
     }
   };
 

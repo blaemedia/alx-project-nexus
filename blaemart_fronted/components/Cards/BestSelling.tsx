@@ -12,13 +12,19 @@ interface ApiProduct {
   in_stock: boolean;
 }
 
+interface CartItem {
+  id: number;
+  product: number;
+  quantity: number;
+}
+
 interface Product {
   id: number;
   title: string;
   description: string;
   imageSrc: string;
   rating: number;
-  raw: ApiProduct; // keep original product for Add to Cart
+  raw: ApiProduct;
 }
 
 const FALLBACK_IMAGE = "/images/pngwing-3.png";
@@ -29,18 +35,65 @@ export default function BestSelling() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Add to cart function
-  const addToCart = (product: ApiProduct) => {
-    const cart: (ApiProduct & { quantity: number })[] = JSON.parse(
-      localStorage.getItem("cart") || "[]"
-    );
+  // Add to cart function using API
+  const addToCart = async (product: ApiProduct) => {
+    const token = localStorage.getItem("access");
+    
+    if (!token) {
+      alert("Please login to add items to cart");
+      return;
+    }
 
-    const existing = cart.find((item) => item.id === product.id);
-    if (existing) existing.quantity += 1;
-    else cart.push({ ...product, quantity: 1 });
+    try {
+      // First, check if item already exists in cart
+      const cartRes = await fetch(`${BACKEND_URL}/store/cart-items/`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
 
-    localStorage.setItem("cart", JSON.stringify(cart));
-    alert(`${product.name} added to cart`);
+      if (cartRes.ok) {
+        const cartData = await cartRes.json();
+        const existingItem = Array.isArray(cartData) 
+          ? cartData.find((item: CartItem) => item.product === product.id)
+          : null;
+
+        if (existingItem) {
+          // Update quantity
+          await fetch(`${BACKEND_URL}/store/cart-items/${existingItem.id}/`, {
+            method: "PATCH",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              quantity: existingItem.quantity + 1,
+            }),
+          });
+        } else {
+          // Add new item
+          await fetch(`${BACKEND_URL}/store/cart-items/`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              product: product.id,
+              quantity: 1,
+            }),
+          });
+        }
+
+        // Trigger NavBar refresh
+        window.dispatchEvent(new Event('cartUpdated'));
+        
+        alert(`${product.name} added to cart`);
+      }
+    } catch (err) {
+      console.error("Add to cart failed:", err);
+      alert("Failed to add to cart. Try again.");
+    }
   };
 
   useEffect(() => {
@@ -69,11 +122,11 @@ export default function BestSelling() {
           };
         });
 
-        // You can replace slice(0,12) with sorting by popularity if available
         setProducts(mapped.slice(0, 12));
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
-        setError(err.message || "Something went wrong");
+        const errorMessage = err instanceof Error ? err.message : "Something went wrong";
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -95,7 +148,7 @@ export default function BestSelling() {
           description={product.description}
           imageSrc={product.imageSrc}
           rating={product.rating}
-          onBuy={() => addToCart(product.raw)} // Add to Cart
+          onBuy={() => addToCart(product.raw)}
         />
       ))}
     </div>

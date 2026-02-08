@@ -1,9 +1,10 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { AuthContext } from "./context/AuthContext";
 
 interface FormData {
   email: string;
@@ -16,8 +17,8 @@ interface FormErrors {
 
 const SignInForm: React.FC = () => {
   const router = useRouter();
+  const { setAccessToken } = useContext(AuthContext);
 
-  // ALWAYS controlled inputs
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -29,11 +30,7 @@ const SignInForm: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value ?? "",
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,13 +48,20 @@ const SignInForm: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        setErrors({ general: "Email or password is incorrect" });
-      } else {
-        localStorage.setItem("access", data.access);
-        localStorage.setItem("refresh", data.refresh);
-        router.push("/CustomerAcct");
+        setErrors({ general: data.detail || "Email or password is incorrect" });
+        return;
       }
-    } catch {
+
+      localStorage.setItem("access", data.access);
+      localStorage.setItem("refresh", data.refresh);
+
+      if (setAccessToken) {
+        setAccessToken(data.access);
+      }
+
+      router.push("/CustomerAcct");
+    } catch (err) {
+      console.error(err);
       setErrors({ general: "Network error. Please try again." });
     } finally {
       setIsLoading(false);
@@ -68,7 +72,6 @@ const SignInForm: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg grid grid-cols-1 md:grid-cols-2 overflow-hidden">
         
-        {/* IMAGE SECTION */}
         <div className="relative hidden md:block min-h-125">
           <Image
             src="/images/Shopping.jpg"
@@ -79,7 +82,6 @@ const SignInForm: React.FC = () => {
           />
         </div>
 
-        {/* FORM SECTION */}
         <div className="flex items-center justify-center p-10">
           <div className="w-full max-w-md space-y-6">
             <h2 className="text-3xl font-bold text-center text-gray-900">
@@ -87,18 +89,13 @@ const SignInForm: React.FC = () => {
             </h2>
 
             {errors.general && (
-              <p className="text-sm text-red-600 text-center">
-                {errors.general}
-              </p>
+              <p className="text-sm text-red-600 text-center">{errors.general}</p>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               
-              {/* Email */}
               <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Email
-                </label>
+                <label className="text-sm font-medium text-gray-700">Email</label>
                 <input
                   type="email"
                   name="email"
@@ -110,12 +107,8 @@ const SignInForm: React.FC = () => {
                 />
               </div>
 
-              {/* Password */}
               <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Password
-                </label>
-
+                <label className="text-sm font-medium text-gray-700">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -126,7 +119,6 @@ const SignInForm: React.FC = () => {
                     placeholder="••••••••"
                     required
                   />
-
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
@@ -147,7 +139,7 @@ const SignInForm: React.FC = () => {
             </form>
 
             <div className="text-center text-sm text-gray-500">
-              Don’t have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link href="/SignUp" className="text-orange-500 hover:underline">
                 Sign up
               </Link>
