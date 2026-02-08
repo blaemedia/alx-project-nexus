@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 
 interface SearchBarProps {
-  onSearch: (query: string) => void;
+  onSearch: (query: string) => void; // rename from onSearchResults
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
@@ -11,15 +11,16 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(query);
+    if (query.trim()) {
+      onSearch(query); // call onSearch from props
+    }
   };
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex w-110 max-w-full bg-white border border-gray-300 rounded-full shadow-sm overflow-hidden"
+      className="flex w-full max-w-full bg-white border border-gray-300 rounded-full shadow-sm overflow-hidden"
     >
-      {/* Input grows/shrinks automatically */}
       <input
         type="text"
         placeholder="Search products, categories..."
@@ -27,8 +28,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         onChange={(e) => setQuery(e.target.value)}
         className="flex-1 px-4 py-2 text-gray-700 placeholder-gray-400 focus:outline-none"
       />
-
-      {/* Search button */}
       <button
         type="submit"
         className="px-4 flex items-center justify-center hover:bg-gray-100 transition-colors"

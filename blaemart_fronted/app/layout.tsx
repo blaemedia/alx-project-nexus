@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Lato} from "next/font/google";
 import "./globals.css";
-
-
+import NavBar from "@/components/NavBar/NavBar";
+import Promo from "@/components/Cards/Promo";
 
 const latofont = Lato({
   weight: ['100', '300', '400', '700', '900'], // Specify weights you need
@@ -30,7 +30,8 @@ export default function RootLayout({
       >
         
       
-      
+        <NavBar/>
+        <Promo/>
        
         {children}
       </body>
