@@ -49,7 +49,7 @@ const ProductCard: React.FC<CardProps> = ({
           >
             Buy Now
           </button>
-          <span className="text-green-500 font-bold text-lg">⭐ {rating}</span>
+          <span className="text-[#FF4400] font-bold text-lg">⭐ {rating}</span>
         </div>
       </div>
     </div>

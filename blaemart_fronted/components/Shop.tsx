@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/Cards/ProductCard";
+
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 interface Product {
   id: number;
@@ -11,8 +13,11 @@ interface Product {
   image?: string | null;
 }
 
-interface CartItem extends Product {
+interface CartItem {
+  id: number;
+  product: number;
   quantity: number;
+  added_at: string;
 }
 
 const ITEMS_PER_PAGE = 12;
@@ -22,39 +27,85 @@ export default function Shop() {
   const searchQuery = searchParams.get("search")?.toLowerCase() || "";
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [page, setPage] = useState(1);
 
-  const addToCart = (product: Product) => {
-    const cart: CartItem[] = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existing = cart.find((item) => item.id === product.id);
-
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      cart.push({ ...product, quantity: 1 });
-    }
-
-    localStorage.setItem("cart", JSON.stringify(cart));
-    alert(`${product.name} added to cart`);
-  };
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      const res = await fetch("http://127.0.0.1:8000/store/products/");
+  // Fetch products - wrapped with useCallback so effect deps are stable
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/store/products/`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: Product[] = await res.json();
 
       const filtered = searchQuery
-        ? data.filter((p) =>
-            p.name.toLowerCase().includes(searchQuery)
-          )
+        ? data.filter((p) => p.name.toLowerCase().includes(searchQuery))
         : data;
 
       setProducts(filtered);
       setPage(1);
-    };
-
-    fetchProducts();
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+    }
   }, [searchQuery]);
+
+  // Fetch cart items
+  const fetchCartItems = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/store/cart-items/`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: CartItem[] = await res.json();
+      setCartItems(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch cart items:", err);
+      setCartItems([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Call async functions safely inside effect
+    fetchProducts();
+    fetchCartItems();
+  }, [fetchProducts, fetchCartItems]);
+
+  // Add to cart handler
+  const addToCart = async (product: Product) => {
+    try {
+      const existing = cartItems.find((item) => item.product === product.id);
+
+      const payload = {
+        product: product.id,
+        quantity: existing ? existing.quantity + 1 : 1,
+      };
+
+      const url = existing
+        ? `${API_BASE_URL}/store/cart-items/${existing.id}/`
+        : `${API_BASE_URL}/store/cart-items/`;
+
+      const method = existing ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        console.error("Cart API error:", errData);
+        alert("Failed to add item to cart.");
+        return;
+      }
+
+      // Refresh cart items
+      fetchCartItems();
+      alert(`${product.name} added to cart`);
+    } catch (err) {
+      console.error("Add to cart error:", err);
+      alert("Something went wrong while adding to cart.");
+    }
+  };
 
   const start = (page - 1) * ITEMS_PER_PAGE;
   const paginatedProducts = products.slice(start, start + ITEMS_PER_PAGE);
@@ -67,11 +118,10 @@ export default function Shop() {
         {paginatedProducts.map((product) => (
           <ProductCard
             key={product.id}
-            // Remove trailing numbers from product name
             title={product.name.replace(/\d+$/, "").trim()}
             description={`₦${Number(product.price).toLocaleString()}`}
             imageSrc={
-              product.image ? `http://127.0.0.1:8000${product.image}` : undefined
+              product.image ? `${API_BASE_URL}${product.image}` : undefined
             }
             rating={4.5}
             onBuy={() => addToCart(product)}

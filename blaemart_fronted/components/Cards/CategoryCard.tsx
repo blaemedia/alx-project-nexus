@@ -6,22 +6,26 @@ import { useState } from 'react';
 interface CategoryCardProps {
   image?: string;
   title?: string;
+  onClick?: () => void; // ✅ Add this
 }
 
 export default function CategoryCard({
   image = "/images/default.png",
-  title = "Default Title"
+  title = "Default Title",
+  onClick, // ✅ Receive click prop
 }: CategoryCardProps) {
   const [imgSrc, setImgSrc] = useState(image);
-  
+
   const handleError = () => {
     console.log('Image failed to load:', image);
     setImgSrc('/images/default.png');
   };
 
   return (
-    <div className="w-72 h-64 bg-white flex flex-col rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-           
+    <div
+      className="w-72 h-64 bg-white flex flex-col rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden cursor-pointer"
+      onClick={onClick} // ✅ Attach click handler here
+    >
       <div className="relative w-full h-48">
         <Image
           src={imgSrc}
