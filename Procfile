@@ -1,1 +1,1 @@
-web: gunicorn backend.BlaeMart.wsgi:application
+web: cd /opt/render/project/src && python diagnostic.py && gunicorn backend.BlaeMart.wsgi:application --bind 0.0.0.0:$PORT
