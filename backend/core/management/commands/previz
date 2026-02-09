@@ -1,0 +1,358 @@
+from django.core.management.base import BaseCommand
+from backend.store.models import (
+    Category, Collection, Promotion, Product, ProductImage,
+    CustomerProfile, Order, OrderItem, Cart, CartItem, ProductReview
+)
+from backend.core.models import User
+from django.contrib.auth import get_user_model
+
+from faker import Faker
+import random
+from decimal import Decimal
+from django.utils.text import slugify
+from django.utils import timezone
+import faker.providers
+import uuid
+
+User = get_user_model()
+
+# ---- Nigeria-focused categories ----
+CATEGORIES = [
+    "Men's Fashion",
+    "Women's Fashion",
+    "Electronics",
+    "Home & Living",
+    "Beauty Products",
+    "Groceries",
+    "Sports & Fitness",
+    "Kids & Baby",
+    "Accessories",
+    "Footwear"
+]
+
+# ---- Nigeria-focused product list ----
+PRODUCTS = [
+    "Ankara Shoes", "Leather Boots", "Trainers", "Agbada Outfit", 
+    "Buba & Iro", "T-Shirt", "Jeans", "Shirts", "Printed Shirts", 
+    "Tank Tops", "Polo Shirt", "Skincare", "Makeup", "Hair Care", 
+    "DIY Tools", "Garden & Outdoors", "Lighting", "Home Decor", 
+    "Kitchen Appliances", "Grocery", "Beverages", "Snacks", 
+    "Organic Foods", "Electronics", "Mobile Accessories", "Laptops", 
+    "Gaming Accessories",
+]
+
+# ---- Nigeria-focused promotions ----
+PROMOTIONS = [
+    "New Arrivals", "Best Sellers", "Trending Now", "Flash Sale", 
+    "Limited Offer", "Clearance Sale", "Buy One Get One", "Weekend Deals", 
+    "Holiday Sale", "Mega Discount", "Under ₦5,000", "Under ₦10,000", 
+    "Budget Deals", "Luxury Picks", "Recommended For You", "Top Rated", 
+    "Most Viewed", "Staff Picks", "Back to School", "Black Friday", 
+    "Cyber Monday", "Christmas Deals", "Easter Sale",
+]
+
+COLLECTIONS = [
+    "Men's Fashion", "Women's Fashion", "Electronics", "Home & Living", 
+    "Beauty Products", "Groceries", "Sports & Fitness", "Kids & Baby", 
+    "Accessories", "Footwear", "New Arrivals", "Best Sellers", 
+    "Trending Now", "Flash Sales",
+]
+
+nigerian_cities = [
+    "Abuja", "Lagos", "Kano", "Ibadan", "Port Harcourt", "Benin City", 
+    "Kaduna", "Maiduguri", "Zaria", "Aba", "Jos", "Ilorin", "Oshogbo", 
+    "Enugu", "Ede", "Onitsha", "Warri", "Owerri", "Akure", "Calabar", 
+    "Sokoto", "Bauchi", "Yola", "Makurdi", "Ado-Ekiti", "Uyo", "Gombe", 
+    "Lafia", "Katsina", "Ikare", "Iwo", "Ikeja", "Shagamu", "Oyo", 
+    "Ijebu-Ode", "Asaba", "Ogbomosho", "Minna", "Lokoja", "Portharcourt", 
+    "Abakaliki", "Gusau", "Damaturu", "Keffi", "Kano", "Kano City", 
+    "Kontagora", "Nguru", "Bida", "Bida Town", "Lere", "Mubi", "Otukpo", 
+    "Yenagoa", "Umuahia", "Awka", "Ikot Ekpene", "Jalingo", "Biu", "Zungeru"
+]
+
+# Lists of common Nigerian first and last names
+nigerian_first_names = [
+    "Chinedu", "Olufemi", "Adebayo", "Amaka", "Ngozi", "Ifeanyi", 
+    "Tunde", "Abiola", "Fatima", "Uche", "Sade", "Chukwuemeka",
+    "Ijeoma", "Kemi", "Bola", "Yemi", "Chuka", "Aisha"
+]
+
+nigerian_last_names = [
+    "Okonkwo", "Adebayo", "Ogunleye", "Ibrahim", "Eze", "Balogun", 
+    "Adeyemi", "Nwosu", "Chukwudi", "Obi", "Okafor", "Ajayi", 
+    "Mohammed", "Onyeka", "Olatunji", "Idowu", "Abdullahi", "Akinwale"
+]
+
+product_descriptions = [
+    "High quality product suitable for everyday use.",
+    "Durable and affordable with excellent performance.",
+    "Customer favorite with premium finishing.",
+    "Designed for comfort, reliability, and style.",
+]
+
+# ---- Custom Faker Provider ----
+class Provider(faker.providers.BaseProvider):
+    def ecommerce_category(self):
+        return self.random_element(CATEGORIES)
+
+    def ecommerce_products(self):
+        return self.random_element(PRODUCTS)
+
+    def ecommerce_promotions(self):
+        return self.random_element(PROMOTIONS)
+
+    def ecommerce_collections(self):
+        return self.random_element(COLLECTIONS)
+    
+    def nigerian_cities(self):
+        return self.random_element(nigerian_cities)
+
+# ---- Helper: Unique slug generator ----
+def unique_slugify(instance, value, slug_field_name='slug'):
+    slug = slugify(value)
+    model = instance.__class__
+    unique_slug = slug
+    counter = 1
+    while model.objects.filter(**{slug_field_name: unique_slug}).exists():
+        unique_slug = f"{slug}-{counter}"
+        counter += 1
+    return unique_slug
+
+class Command(BaseCommand):
+    help = "Generate Nigeria-focused fake data for store models"
+
+    def handle(self, *args, **kwargs):
+        fake = Faker("en_US")
+        fake.add_provider(Provider)
+        
+        # Clear existing data to avoid duplicate errors
+        self.stdout.write("Clearing existing data...")
+        CartItem.objects.all().delete()
+        Cart.objects.all().delete()
+        OrderItem.objects.all().delete()
+        Order.objects.all().delete()
+        ProductReview.objects.all().delete()
+        ProductImage.objects.all().delete()
+        Product.objects.all().delete()
+        CustomerProfile.objects.all().delete()
+        # Keep superusers but delete regular users
+        User.objects.filter(is_superuser=False, is_staff=False).delete()
+        Promotion.objects.all().delete()
+        Collection.objects.all().delete()
+        Category.objects.all().delete()
+        
+        # Get existing SKUs to avoid duplicates
+        existing_skus = set(Product.objects.values_list('sku', flat=True))
+
+        # ---- Categories ----
+        categories = []
+        for _ in range(10):
+            name = fake.unique.ecommerce_category()
+            category = Category.objects.create(
+                name=name,
+                slug=unique_slugify(Category(name=name), name),
+                description=random.choice(product_descriptions),
+                is_active=True
+            )
+            categories.append(category)
+
+        # ---- Collections ----
+        collections = []
+        for _ in range(10):
+            title = fake.unique.ecommerce_collections()
+            collection = Collection.objects.create(
+                title=title,
+                slug=unique_slugify(Collection(title=title), title),
+                description=random.choice(product_descriptions),
+                is_active=True
+            )
+            collections.append(collection)
+
+        # ---- Promotions ----
+        promotions = []
+        for _ in range(5):
+            name = fake.unique.ecommerce_promotions()
+            start = timezone.now()
+            end = start + timezone.timedelta(days=random.randint(5, 30))
+            promotion = Promotion.objects.create(
+                name=name,
+                discount_percent=random.randint(5, 50),
+                start_date=start,
+                end_date=end,
+                is_active=True
+            )
+            promotions.append(promotion)
+
+        # ---- Users & Customer Profiles ----
+        users = []
+        for i in range(50):
+            first_name = random.choice(nigerian_first_names)
+            last_name = random.choice(nigerian_last_names)
+            email = f"{first_name.lower()}.{last_name.lower()}{i}@{fake.domain_name()}"
+            
+            # Check if user already exists
+            if not User.objects.filter(email=email).exists():
+                user = User.objects.create_user(
+                    email=email,
+                    password="password123",
+                    first_name=first_name,
+                    last_name=last_name,
+                )
+
+                CustomerProfile.objects.create(
+                    user=user,
+                    phone_number=f"+234{fake.random_number(digits=10, fix_len=True)}",
+                    shipping_address=f"{fake.street_address()}, {random.choice(nigerian_cities)}",
+                    billing_address=f"{fake.street_address()}, {random.choice(nigerian_cities)}",
+                    points=random.randint(0, 1000),
+                    membership_level=random.choice(
+                        ["bronze", "silver", "gold", "platinum"]
+                    ),
+                )
+                users.append(user)
+
+        # ---- Products ----
+        products = []
+        for i in range(200):
+            base_name = fake.ecommerce_products()
+            name = f"{base_name} {i + 1}"
+            category = random.choice(categories)
+            promotion = random.choice(promotions + [None])
+
+            naira = random.randint(10, 15000)
+            cents = random.randint(0, 99)
+            price = Decimal(f"{naira}.{cents:02d}")
+
+            # Generate unique SKU using UUID
+            sku = f"SKU-{uuid.uuid4().hex[:8].upper()}"
+            # Ensure uniqueness
+            while Product.objects.filter(sku=sku).exists():
+                sku = f"SKU-{uuid.uuid4().hex[:8].upper()}"
+
+            product = Product.objects.create(
+                name=name,
+                slug=unique_slugify(Product(name=name), name),
+                description=random.choice(product_descriptions),
+                price=price,
+                inventory=random.randint(0, 100),
+                sku=sku,  # Unique SKU
+                category=category,
+                promotion=promotion,
+            )
+
+            if collections:
+                product.collections.set(
+                    random.sample(collections, k=random.randint(0, 3))
+                )
+
+            # ---- FIXED: Use external URLs with proper Django ImageField handling ----
+            for j in range(random.randint(1, 3)):
+                # Use working external image URLs
+                # These will be stored as-is and your template should use them directly
+                image_services = [
+                    # LoremFlickr - category-based
+                    f"https://loremflickr.com/640/480/{slugify(category.name)}",
+                    f"https://loremflickr.com/640/480/{slugify(base_name)}",
+                    
+                    # Picsum.photos - random (ALWAYS WORKS)
+                    f"https://picsum.photos/640/480",
+                    f"https://picsum.photos/640/480?random={random.randint(1, 1000)}",
+                    
+                    # Placeholder.com - always works
+                    f"https://via.placeholder.com/640x480",
+                    f"https://via.placeholder.com/640x480/4A90E2/FFFFFF?text={slugify(base_name)[:15]}",
+                    
+                    # Dummyimage.com - always works
+                    f"https://dummyimage.com/640x480/000/fff&text={slugify(base_name)[:15]}",
+                    
+                    # PlaceKitten - always works
+                    f"https://placekitten.com/640/480",
+                    
+                    # PlaceBear - always works  
+                    f"https://placebear.com/640/480",
+                ]
+                
+                # Choose a reliable service
+                if j == 0:  # First/primary image
+                    image_url = random.choice([
+                        f"https://loremflickr.com/640/480/{slugify(category.name)}",
+                        f"https://picsum.photos/640/480",
+                        f"https://via.placeholder.com/640x480/4A90E2/FFFFFF?text={slugify(base_name)[:15]}",
+                    ])
+                else:  # Additional images
+                    image_url = random.choice(image_services)
+                
+                # Store as relative path but your serializer should handle it as URL
+                # The key is that the ImageField stores the URL string
+                ProductImage.objects.create(
+                    product=product,
+                    image=image_url,  # Store the full URL
+                    alt_text=fake.sentence(),
+                    is_primary=(j == 0)
+                )
+
+            products.append(product)
+
+        # ---- Product Reviews ----
+        for _ in range(50):
+            ProductReview.objects.create(
+                product=random.choice(products),
+                user=random.choice(users),
+                rating=random.randint(1, 5),
+                title=fake.sentence(nb_words=6),
+                body=fake.text(max_nb_chars=150),
+                is_approved=True
+            )
+        
+        # ---- Orders & OrderItems ----
+        for _ in range(30):
+            user = random.choice(users)
+            order = Order.objects.create(
+                customer=user,
+                status=random.choice(['pending','processing','shipped','delivered']),
+                total_amount=0,
+                shipping_address=f"{fake.street_address()}, {random.choice(nigerian_cities)}",
+                payment_status=random.choice([True, False])
+            )
+            
+            total = Decimal('0')
+            for _ in range(random.randint(1, 5)):
+                product = random.choice(products)
+                qty = random.randint(1, 3)
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=qty,
+                    price=product.price
+                )
+                total += product.price * qty
+            
+            order.total_amount = total
+            order.save()
+
+        # ---- Carts & CartItems ----
+        for user in random.sample(users, min(30, len(users))):
+            cart = Cart.objects.create(user=user)
+            for _ in range(random.randint(1, 5)):
+                product = random.choice(products)
+                CartItem.objects.get_or_create(
+                    cart=cart,
+                    product=product,
+                    defaults={"quantity": random.randint(1, 5)},
+                )
+
+        self.stdout.write(self.style.SUCCESS(
+            f"""
+            ✅ Successfully created Nigeria-focused fake data!
+            Summary:
+            - Categories: {len(categories)}
+            - Collections: {len(collections)}
+            - Promotions: {len(promotions)}
+            - Users: {len(users)}
+            - Products: {len(products)}
+            - Product Images: {ProductImage.objects.count()}
+            
+            IMPORTANT: Your images are stored as external URLs.
+            Make sure your serializer/template uses the URL directly.
+            """
+        ))
