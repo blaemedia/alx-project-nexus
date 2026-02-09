@@ -49,11 +49,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = True
 
 # ALLOWED_HOSTS = []  # Comment out or update this line
-ALLOWED_HOSTS = [
-    'alx-project-nexus-6-9ji2.onrender.com',  # <- add your Render domain
-    'localhost',  # for local testing
-    '127.0.0.1',
-]
+ALLOWED_HOSTS = ["*"]
   # Allow all hosts for development
 
 AUTH_USER_MODEL='core.User'

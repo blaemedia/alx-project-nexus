@@ -1,6 +1,4 @@
-# =========================
 # Python / Django
-# =========================
 *.venv/
 .env
 __pycache__/
@@ -10,15 +8,6 @@ __pycache__/
 backend/media/
 db.sqlite3
 
-# =========================
-# Frontend (ignored in dev branch)
-# =========================
-blaemart_frontend/
-frontend/
-store/
-core/
-BlaeMart/
-
 # Node modules
 node_modules/
 blaemart_frontend/node_modules/
@@ -27,9 +16,7 @@ blaemart_frontend/node_modules/
 .next/
 dist/
 
-# =========================
 # OS / Editor
-# =========================
 .DS_Store
 Thumbs.db
 .vscode/
