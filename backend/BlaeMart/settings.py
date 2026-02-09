@@ -50,8 +50,8 @@ DEBUG = True
 
 # ALLOWED_HOSTS = []  # Comment out or update this line
 ALLOWED_HOSTS = [
-    'https://dashboard.render.com/',  # Replace with your Render URL
-    'localhost',
+    'alx-project-nexus-6-9ji2.onrender.com',  # <- add your Render domain
+    'localhost',  # for local testing
     '127.0.0.1',
 ]
   # Allow all hosts for development
