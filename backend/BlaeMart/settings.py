@@ -165,6 +165,14 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # <-- ADD THIS
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'  # <-- ADD THIS
 
+try:
+    import whitenoise
+    print("✓ WhiteNoise is installed")
+except ImportError:
+    print("✗ WhiteNoise is NOT installed - add to requirements.txt")
+
+
+
 MEDIA_URL='/media/'
 
 MEDIA_ROOT= os.path.join(BASE_DIR,"media")
