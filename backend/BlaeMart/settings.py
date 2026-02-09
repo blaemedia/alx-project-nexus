@@ -46,10 +46,10 @@ else:
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 # ALLOWED_HOSTS = []  # Comment out or update this line
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ['alx-project-nexus-14.onrender.com', 'localhost', '127.0.0.1']
   # Allow all hosts for development
 
 AUTH_USER_MODEL='core.User'
@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'whitenoise.runserver_nostatic',
 
     'backend.store',
     'backend.core',
@@ -77,12 +78,14 @@ INSTALLED_APPS = [
     'djoser',
     'rest_framework_simplejwt',
     
+    
    
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -159,6 +162,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # <-- ADD THIS
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'  # <-- ADD THIS
 
 MEDIA_URL='/media/'
 
