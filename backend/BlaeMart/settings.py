@@ -199,7 +199,22 @@ if DEBUG:
     MEDIA_ROOT = BASE_DIR / 'media'
 else:
     DEFAULT_FILE_STORAGE = 'django_cloudinary_storage.storage.MediaCloudinaryStorage'
-    
+
+
+# Try loading .env from different locations
+env_paths = [
+    BASE_DIR / '.env',                    # Inside backend folder
+    BASE_DIR.parent / '.env',            # Outside backend folder (your case)
+    BASE_DIR.parent.parent / '.env',     # Root of project
+]
+
+for env_path in env_paths:
+    if env_path.exists():
+        load_dotenv(env_path)
+        print(f"✅ Loaded environment from: {env_path}")
+        break
+else:
+    print("⚠️  No .env file found. Using default settings.")
 # ============ ADD THESE CORS SETTINGS AT THE BOTTOM ============
 
 # CORS Configuration
