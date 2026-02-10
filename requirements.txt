@@ -64,3 +64,6 @@ dj-database-url
 python-dotenv
 celery
 redis
+django-cloudinary-storage==0.3.0
+cloudinary==1.36.0
+python-decouple==3.8
