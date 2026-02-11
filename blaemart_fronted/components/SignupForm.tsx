@@ -1,96 +1,153 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
 interface FormData {
-  email: string;
-  password: string;
-  re_password: string;
+  newPassword: string;
+  confirmPassword: string;
 }
 
 interface FormErrors {
-  [key: string]: string | string[];
+  general?: string;
+  newPassword?: string;
+  confirmPassword?: string;
 }
 
-const SignupForm: React.FC = () => {
+const SetPasswordForm: React.FC = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+  const uid = searchParams.get('uid');
+
   const [formData, setFormData] = useState<FormData>({
-    email: "",
-    password: "",
-    re_password: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [successMessage, setSuccessMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string>("");
+
+  // Safely get current URL (avoid SSR window error)
+  const [currentUrl] = useState<string>(
+    typeof window !== "undefined" ? window.location.href : ""
+  );
+
+  // Logging token/uid
+  useEffect(() => {
+    console.log("Token:", token);
+    console.log("UID:", uid);
+  }, [token, uid]);
+
+  const validatePassword = (password: string): boolean => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    return (
+      password.length >= minLength &&
+      hasUpperCase &&
+      hasLowerCase &&
+      hasNumbers &&
+      hasSpecialChar
+    );
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value ?? "" }));
+    setFormData(prev => ({ ...prev, [name]: value }));
 
-    if (errors[name]) {
-      setErrors((prev) => {
-        const copy = { ...prev };
-        delete copy[name];
-        return copy;
-      });
+    // Clear error for this field
+    if (errors[name as keyof FormErrors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    }
-
-    if (!formData.re_password) {
-      newErrors.re_password = "Please confirm your password";
-    } else if (formData.password !== formData.re_password) {
-      newErrors.re_password = "Passwords do not match";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const passwordStrength = (password: string) => {
+    if (!password) return 0;
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
+    return strength;
   };
+
+  const strength = passwordStrength(formData.newPassword);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSuccessMessage("");
 
-    if (!validateForm()) return;
+    if (!token || !uid) {
+      setErrors({ general: "Invalid reset link. Use the link from your email." });
+      return;
+    }
 
     setIsLoading(true);
+    setErrors({});
+    setSuccessMessage("");
+
+    if (!validatePassword(formData.newPassword)) {
+      setErrors({
+        newPassword: "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character"
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      setErrors({ confirmPassword: "Passwords do not match" });
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/auth/users/", {
+      const response = await fetch("http://127.0.0.1:8000/auth/users/reset_password_confirm/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          uid,
+          token,
+          new_password: formData.newPassword,
+          re_new_password: formData.confirmPassword,
+        }),
       });
 
-      const text = await response.text();
-      const data = text ? JSON.parse(text) : {};
+      const data = await response.json();
+      console.log("Response status:", response.status);
+      console.log("Response data:", data);
 
       if (!response.ok) {
-        setErrors(data);
-      } else {
-        setSuccessMessage("Account created successfully! You can now log in.");
-        setFormData({ email: "", password: "", re_password: "" });
+        if (data.token) {
+          setErrors({ general: "Invalid or expired token" });
+        } else if (data.new_password) {
+          const errorMsg = Array.isArray(data.new_password) ? data.new_password.join(" ") : data.new_password;
+          setErrors({ general: errorMsg });
+        } else if (data.detail) {
+          setErrors({ general: data.detail });
+        } else {
+          setErrors({ general: "Failed to reset password" });
+        }
+        setIsLoading(false);
+        return;
       }
-    } catch {
-      setErrors({ general: "Network error. Please check your connection." });
-    } finally {
+
+      setSuccessMessage("Password reset successful! Redirecting...");
+      setTimeout(() => router.push("/SignIn"), 3000);
+
+    } catch (error) {
+      console.error("Network error:", error);
+      setErrors({ general: "Network error" });
       setIsLoading(false);
     }
   };
@@ -98,11 +155,9 @@ const SignupForm: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-lg grid grid-cols-1 md:grid-cols-2 overflow-hidden">
-
-        {/* IMAGE SECTION (same as SignIn) */}
         <div className="relative hidden md:block min-h-125">
           <Image
-            src="/images/BlaeStoreImage.jpg"
+            src="/images/Shopping.jpg"
             alt="Fashion"
             fill
             className="object-cover"
@@ -110,115 +165,139 @@ const SignupForm: React.FC = () => {
           />
         </div>
 
-        {/* FORM SECTION */}
         <div className="flex items-center justify-center p-10">
           <div className="w-full max-w-md space-y-6">
             <h2 className="text-3xl font-bold text-center text-gray-900">
-              Create your account
+              Set New Password
             </h2>
 
             {errors.general && (
-              <p className="text-sm text-red-600 text-center">
-                {errors.general}
-              </p>
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600 text-center">{errors.general}</p>
+              </div>
             )}
 
             {successMessage && (
-              <p className="text-sm text-green-600 text-center">
-                {successMessage}
-              </p>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-600 text-center">{successMessage}</p>
+              </div>
             )}
 
-            <form className="space-y-5" onSubmit={handleSubmit}>
-              {/* Email */}
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Email
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="mt-1 w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400"
-                  placeholder="you@example.com"
-                  required
-                />
-                {errors.email && (
-                  <p className="text-sm text-red-600">{errors.email}</p>
-                )}
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Password
-                </label>
+                <label className="text-sm font-medium text-gray-700">New Password</label>
                 <div className="relative">
                   <input
-                    name="password"
                     type={showPassword ? "text" : "password"}
-                    value={formData.password}
+                    name="newPassword"
+                    value={formData.newPassword}
                     onChange={handleChange}
                     className="mt-1 w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400 pr-12"
-                    placeholder="••••••••"
+                    placeholder="Enter new password"
                     required
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword((p) => !p)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-orange-500"
+                    onClick={() => setShowPassword(prev => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-orange-500 hover:text-orange-600"
+                    disabled={isLoading}
                   >
                     {showPassword ? "Hide" : "Show"}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-sm text-red-600">{errors.password}</p>
+
+                {formData.newPassword && (
+                  <div className="mt-2">
+                    <div className="flex space-x-1 mb-1">
+                      {[1,2,3,4,5].map(i => (
+                        <div
+                          key={i}
+                          className={`h-1 flex-1 rounded ${
+                            i <= strength
+                              ? strength <= 2 ? 'bg-red-500'
+                              : strength <= 3 ? 'bg-yellow-500'
+                              : 'bg-green-500'
+                              : 'bg-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className={`text-xs ${
+                      strength <= 2 ? 'text-red-600' :
+                      strength <= 3 ? 'text-yellow-600' :
+                      'text-green-600'
+                    }`}>
+                      {strength <= 2 ? "Weak" : strength <= 3 ? "Fair" : "Strong"} password
+                    </p>
+                  </div>
                 )}
+
+                <ul className="text-xs text-gray-500 mt-2 space-y-1">
+                  <li className={formData.newPassword.length >= 8 ? "text-green-600" : ""}>• At least 8 characters</li>
+                  <li className={/[A-Z]/.test(formData.newPassword) ? "text-green-600" : ""}>• One uppercase letter</li>
+                  <li className={/[a-z]/.test(formData.newPassword) ? "text-green-600" : ""}>• One lowercase letter</li>
+                  <li className={/\d/.test(formData.newPassword) ? "text-green-600" : ""}>• One number</li>
+                  <li className={/[!@#$%^&*(),.?":{}|<>]/.test(formData.newPassword) ? "text-green-600" : ""}>• One special character</li>
+                </ul>
+
+                {errors.newPassword && <p className="text-sm text-red-600 mt-1">{errors.newPassword}</p>}
               </div>
 
-              {/* Confirm Password */}
               <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Confirm Password
-                </label>
+                <label className="text-sm font-medium text-gray-700">Confirm Password</label>
                 <input
-                  name="re_password"
                   type={showPassword ? "text" : "password"}
-                  value={formData.re_password}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
                   onChange={handleChange}
                   className="mt-1 w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-orange-400"
-                  placeholder="Confirm password"
+                  placeholder="Confirm new password"
                   required
+                  disabled={isLoading}
                 />
-                {errors.re_password && (
-                  <p className="text-sm text-red-600">
-                    {errors.re_password}
-                  </p>
-                )}
+                {errors.confirmPassword && <p className="text-sm text-red-600 mt-1">{errors.confirmPassword}</p>}
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2 text-white rounded-md bg-[#FF8D28] hover:bg-[#FF4400] transition disabled:opacity-60"
+                className={`w-full py-2.5 text-white rounded-md font-medium transition-all ${
+                  isLoading
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-[#FF8D28] hover:bg-[#FF4400] hover:shadow-lg'
+                }`}
               >
-                {isLoading ? "Creating account..." : "Sign up"}
+                {isLoading ? "Setting Password..." : "Set Password"}
               </button>
             </form>
 
             <div className="text-center text-sm text-gray-500">
-              Already have an account?{" "}
-              <Link href="/SignIn" className="text-orange-500 hover:underline">
+              Remember your password?{" "}
+              <Link href="/SignIn" className="text-orange-500 hover:text-orange-600 hover:underline font-medium transition">
                 Sign in
               </Link>
             </div>
+
+            <div className="mt-4 text-xs text-blue-700">
+              <p>Debug Info:</p>
+              <p>Token: {token ? "✅ Found" : "❌ Missing"}</p>
+              <p>UID: {uid ? "✅ Found" : "❌ Missing"}</p>
+              <p>URL: {currentUrl}</p>
+              <p>Endpoint: http://127.0.0.1:8000/auth/users/reset_password_confirm/</p>
+              <p>How to use this page:</p>
+              <ul className="list-disc ml-4">
+                <li>Go to Forgot Password page</li>
+                <li>Enter your email and submit</li>
+                <li>Check Django console for the reset link</li>
+                <li>Click that link to access this page</li>
+              </ul>
+            </div>
           </div>
         </div>
-
       </div>
     </div>
   );
 };
 
-export default SignupForm;
+export default SetPasswordForm;
